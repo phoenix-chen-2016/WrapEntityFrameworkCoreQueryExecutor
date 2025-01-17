@@ -3,22 +3,25 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using NSubstitute;
 using NSubstitute.Core;
 using WrapEntityFrameworkCoreQueryExecutor;
 
-var dbContextOptions = new DbContextOptionsBuilder<SandboxDbContext>()
-	.UseInMemoryDatabase("Test")
-	.ReplaceService<IQueryCompilationContextFactory, TestQueryCompilationContextFactory>()
-	.Options;
-using var dbContext = new SandboxDbContext(dbContextOptions);
-
 var fakeCreateQueryExecutorWrapper = Substitute.For<CreateQueryExecutorWrapper>();
 
-TestQueryCompilationContextFactory.Services
-	.AddKeyedScoped(
-		dbContextOptions,
-		(sp, _) => fakeCreateQueryExecutorWrapper);
+var dbContextOptionsBuilder = new DbContextOptionsBuilder<SandboxDbContext>()
+	.UseInMemoryDatabase("Test");
+
+var serviceProvider = new ServiceCollection()
+	.AddEntityFrameworkInMemoryDatabase()
+	.Replace(ServiceDescriptor.Scoped<IQueryCompilationContextFactory, TestQueryCompilationContextFactory>())
+	.AddKeyedScoped(dbContextOptionsBuilder.Options, (_, _) => fakeCreateQueryExecutorWrapper)
+	.BuildServiceProvider();
+
+dbContextOptionsBuilder.UseInternalServiceProvider(serviceProvider);
+
+using var dbContext = new SandboxDbContext(dbContextOptionsBuilder.Options);
 
 fakeCreateQueryExecutorWrapper.CreateQueryExecutor(
 	Arg.Any<Expression>(),
