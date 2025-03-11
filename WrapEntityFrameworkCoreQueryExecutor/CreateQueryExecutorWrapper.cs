@@ -5,7 +5,7 @@ namespace WrapEntityFrameworkCoreQueryExecutor;
 
 public class CreateQueryExecutorWrapper
 {
-	public Dictionary<Type, Delegate> m_SpecializedQueryExecutors = new();
+	public List<(Type Type, Delegate Func)> m_SpecializedQueryExecutors = [];
 
 	public delegate Func<QueryContext, TResult> SpecializedQueryExecutorDelegate<TResult>(
 		Expression query,
@@ -15,14 +15,19 @@ public class CreateQueryExecutorWrapper
 		Expression query,
 		Func<Expression, Func<QueryContext, TResult>> baseFunc)
 	{
-		return this.m_SpecializedQueryExecutors.TryGetValue(typeof(TResult), out var specializedQueryExecutor)
-			? ((SpecializedQueryExecutorDelegate<TResult>)specializedQueryExecutor)(query, baseFunc)
-			: baseFunc(query);
+		var currentBaseFunc = baseFunc;
+		foreach (var t in m_SpecializedQueryExecutors.Where(t => t.Type == typeof(TResult)).Reverse())
+		{
+			var queryExecutorDelegate = (SpecializedQueryExecutorDelegate<TResult>)t.Func;
+			currentBaseFunc = q => queryExecutorDelegate(q, currentBaseFunc);
+		}
+
+		return currentBaseFunc(query);
 	}
 
 	public void RegisterSpecializedQueryExecutor<TResult>(
 		SpecializedQueryExecutorDelegate<TResult> specializedQueryExecutor)
 	{
-		this.m_SpecializedQueryExecutors[typeof(TResult)] = specializedQueryExecutor;
+		this.m_SpecializedQueryExecutors.Add((typeof(TResult), specializedQueryExecutor));
 	}
 }

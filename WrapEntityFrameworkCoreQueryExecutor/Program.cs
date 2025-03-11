@@ -29,11 +29,26 @@ createQueryExecutorWrapper.RegisterSpecializedQueryExecutor<IAsyncEnumerable<Tab
 			queryContext => new[] {
 				new Table1
 				{
+					Id = 2,
+					Name = "Test"
+				}
+			}.ToAsyncEnumerable())
+		: baseFunc(queryExp));
+
+createQueryExecutorWrapper.RegisterSpecializedQueryExecutor<IAsyncEnumerable<Table1>>(
+	(queryExp, baseFunc) => queryExp is MethodCallExpression methodCall
+		&& methodCall.Method.Name == nameof(EntityFrameworkQueryableExtensions.AsNoTracking)
+		&& methodCall.Arguments[0] is FromSqlQueryRootExpression sqlQueryExp
+		? new Func<QueryContext, IAsyncEnumerable<Table1>>(
+			queryContext => new[] {
+				new Table1
+				{
 					Id = 1,
 					Name = "Test"
 				}
 			}.ToAsyncEnumerable())
 		: baseFunc(queryExp));
+
 
 var rows = await dbContext.Table1
 	.FromSqlInterpolated($"SELECT * FROM Table1 WHERE Id = {1}")
@@ -41,3 +56,4 @@ var rows = await dbContext.Table1
 	.ToArrayAsync();
 
 Console.WriteLine(rows.Count());
+Console.WriteLine(rows.First().Id);
