@@ -22,7 +22,7 @@ dbContextOptionsBuilder.UseInternalServiceProvider(serviceProvider);
 using var dbContext = new SandboxDbContext(dbContextOptionsBuilder.Options);
 
 createQueryExecutorWrapper.RegisterSpecializedQueryExecutor<IAsyncEnumerable<Table1>>(
-	(queryExp, baseFunc) => queryExp is MethodCallExpression methodCall
+	(compilationCtx, queryExp, baseFunc) => queryExp is MethodCallExpression methodCall
 		&& methodCall.Method.Name == nameof(EntityFrameworkQueryableExtensions.AsNoTracking)
 		&& methodCall.Arguments[0] is FromSqlQueryRootExpression sqlQueryExp
 		? new Func<QueryContext, IAsyncEnumerable<Table1>>(
@@ -36,7 +36,7 @@ createQueryExecutorWrapper.RegisterSpecializedQueryExecutor<IAsyncEnumerable<Tab
 		: baseFunc(queryExp));
 
 createQueryExecutorWrapper.RegisterSpecializedQueryExecutor<IAsyncEnumerable<Table1>>(
-	(queryExp, baseFunc) => queryExp is MethodCallExpression methodCall
+	(compilationCtx, queryExp, baseFunc) => queryExp is MethodCallExpression methodCall
 		&& methodCall.Method.Name == nameof(EntityFrameworkQueryableExtensions.AsNoTracking)
 		&& methodCall.Arguments[0] is FromSqlQueryRootExpression sqlQueryExp
 		? new Func<QueryContext, IAsyncEnumerable<Table1>>(

@@ -10,5 +10,5 @@ internal class TestQueryCompilationContext(
 	: QueryCompilationContext(dependencies, async)
 {
 	public override Func<QueryContext, TResult> CreateQueryExecutor<TResult>(Expression query)
-		=> wrapper.CreateQueryExecutor(query, base.CreateQueryExecutor<TResult>);
+		=> wrapper.CreateQueryExecutor(this, query, base.CreateQueryExecutor<TResult>);
 }
